@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# Atualiza o sistema e instala as dependências necessárias
+echo "Atualizando o sistema e instalando as dependências necessárias..."
+sudo apt-get update
+sudo apt-get install apt-transport-https default-jre -y
+
+# Tuning do Kernel
+echo "Configurando o Kernel..."
+sudo sh -c 'echo "vm.max_map_count=262144" >> /etc/sysctl.conf'
+sudo sysctl -w vm.max_map_count=262144
+
+# Instalação do Elasticsearch
+echo "Instalando o Elasticsearch..."
+wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+echo "deb https://artifacts.elastic.co/packages/oss-7.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-7.x.list
+sudo apt-get update
+sudo apt-get install elasticsearch-oss -y
+
+# Configuração do Elasticsearch
+echo "Configurando o Elasticsearch..."
+sudo sed -i 's/#cluster\.name: my-application/cluster.name: elasticsearch/' /etc/elasticsearch/elasticsearch.yml
+sudo sed -i 's/#network\.host: 192.168.0.1/network.host: 0.0.0.0/' /etc/elasticsearch/elasticsearch.yml
+sudo sed -i 's/-Xms1g/-Xms512m/' /etc/elasticsearch/jvm.options
+sudo sed -i 's/-Xmx1g/-Xmx512m/' /etc/elasticsearch/jvm.options
+sudo systemctl enable elasticsearch.service
+sudo systemctl start elasticsearch.service
+
+# Instalação do Kibana
+echo "Instalando o Kibana..."
+echo "deb https://artifacts.elastic.co/packages/oss-7.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-7.x.list
+sudo apt-get update
+sudo apt-get install kibana-oss -y
+
+# Configuração do Kibana
+echo "Configurando o Kibana..."
+sudo sed -i 's/#server\.host: "localhost"/server.host: "0.0.0.0"/' /etc/kibana/kibana.yml
+sudo sed -i 's/#elasticsearch\.hosts/elasticsearch.hosts/' /etc/kibana/kibana.yml
+sudo sed -i 's/localhost:9200/0.0.0.0:9200/' /etc/kibana/kibana.yml
+sudo systemctl enable kibana.service
+sudo systemctl start kibana.service
+
+# Instalação do ElastiFlow
+echo "Instalando o ElastiFlow..."
+sudo apt-get install python3 python3-pip python3-dev python3-setuptools -y
+sudo pip3 install -U pip
+sudo pip3 install elastiflow
+
+echo "Instalação e configuração concluídas!"
